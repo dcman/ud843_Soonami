@@ -18,6 +18,7 @@ package com.example.android.soonami;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.TextView;
 
@@ -111,8 +112,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 jsonResponse = makeHttpRequest(url);
             } catch (IOException e) {
-                // TODO Handle the IOException
-            }
+                Log.e(LOG_TAG, "doInBackground: ", e);            }
 
             // Extract relevant fields from the JSON response and create an {@link Event} object
             Event earthquake = extractFeatureFromJson(jsonResponse);
@@ -155,16 +155,24 @@ public class MainActivity extends AppCompatActivity {
             String jsonResponse = "";
             HttpURLConnection urlConnection = null;
             InputStream inputStream = null;
+            // return if url is null
+            if (url == null) {
+                return jsonResponse;
+            }
             try {
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");
                 urlConnection.setReadTimeout(10000 /* milliseconds */);
                 urlConnection.setConnectTimeout(15000 /* milliseconds */);
                 urlConnection.connect();
-                inputStream = urlConnection.getInputStream();
-                jsonResponse = readFromStream(inputStream);
+                // response code is 200
+                if (urlConnection.getResponseCode() == 200){
+                    inputStream = urlConnection.getInputStream();
+                    jsonResponse = readFromStream(inputStream);
+                }
+                Log.e(LOG_TAG, "makeHttpRequest: ResponseCode " + urlConnection.getResponseCode());
             } catch (IOException e) {
-                // TODO: Handle the exception
+                Log.e(LOG_TAG, "makeHttpRequest: ", e);
             } finally {
                 if (urlConnection != null) {
                     urlConnection.disconnect();
@@ -200,6 +208,10 @@ public class MainActivity extends AppCompatActivity {
          * about the first earthquake from the input earthquakeJSON string.
          */
         private Event extractFeatureFromJson(String earthquakeJSON) {
+
+            if (TextUtils.isEmpty(earthquakeJSON)){
+                return  null;
+            }
             try {
                 JSONObject baseJsonResponse = new JSONObject(earthquakeJSON);
                 JSONArray featureArray = baseJsonResponse.getJSONArray("features");
